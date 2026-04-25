@@ -343,6 +343,18 @@
       margin-bottom: 20px;
     }
     .modal-icon { font-size: 2.6rem; }
+    .modal-timer {
+      margin-left: auto;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #ffeb3b;
+      background: rgba(255,235,59,0.15);
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 2px solid rgba(255,235,59,0.5);
+      display: none;
+      box-shadow: 0 0 10px rgba(255,235,59,0.2);
+    }
     .modal-title {
       font-size: 1.05rem;
       font-weight: 800;
@@ -548,6 +560,7 @@
     <div class="modal-header">
       <span class="modal-icon" id="modalIcon"></span>
       <span class="modal-title" id="modalTitle"></span>
+      <span class="modal-timer" id="modalTimer"></span>
     </div>
     <div id="modalBody"></div>
     <div class="modal-footer">
@@ -682,8 +695,11 @@ gridWrapper.appendChild(row2);
 const overlay   = document.getElementById('overlay');
 const modalIcon = document.getElementById('modalIcon');
 const modalTitle= document.getElementById('modalTitle');
+const modalTimer= document.getElementById('modalTimer');
 const modalBody = document.getElementById('modalBody');
 const btnClose  = document.getElementById('btnClose');
+
+let countdownInterval = null;
 
 btnClose.addEventListener('click', closeModal);
 overlay.addEventListener('click', e => { if(e.target===overlay) closeModal(); });
@@ -692,6 +708,9 @@ function openCard(i){
   const c = cards[i];
   modalIcon.textContent  = c.icon;
   modalTitle.textContent = c.label;
+
+  if (countdownInterval) clearInterval(countdownInterval);
+  modalTimer.style.display = 'none';
 
   if(c.placeholder){
     modalBody.innerHTML = `
@@ -726,6 +745,20 @@ function openCard(i){
       <div class="question-text">${c.question}</div>
       <div class="answers">${answersHTML}</div>
       ${feedbackHTML}`;
+
+    if (!answered) {
+      modalTimer.style.display = 'block';
+      modalTimer.textContent = '⏳ 10s';
+      let timeLeft = 10;
+      countdownInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+          timeLeft = 0;
+          clearInterval(countdownInterval);
+        }
+        modalTimer.textContent = `⏳ ${timeLeft}s`;
+      }, 1000);
+    }
   }
 
   overlay.classList.add('open');
@@ -734,6 +767,8 @@ function openCard(i){
 function selectAnswer(cardIdx, ansIdx){
   if(state.answered[cardIdx] !== undefined) return;
   state.answered[cardIdx] = ansIdx;
+  
+  if (countdownInterval) clearInterval(countdownInterval);
 
   const c = cards[cardIdx];
   const isCorrect = ansIdx === c.correct;
@@ -768,7 +803,10 @@ function selectAnswer(cardIdx, ansIdx){
   if(isCorrect) launchConfetti();
 }
 
-function closeModal(){ overlay.classList.remove('open'); }
+function closeModal(){ 
+  overlay.classList.remove('open'); 
+  if (countdownInterval) clearInterval(countdownInterval);
+}
 
 function updateScoreBar(){
   document.getElementById('totalAnswered').textContent = Object.keys(state.answered).length;
